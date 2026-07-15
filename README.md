@@ -8,11 +8,11 @@ VeilMark is a privacy-first daily progress ritual built on Midnight. A user conn
 
 | Item | Value |
 | --- | --- |
-| Live app | `LIVE_DEMO_TBD` |
+| Live app | [rudrabhaskar9439.github.io/private-progress-counter](https://rudrabhaskar9439.github.io/private-progress-counter/) |
 | Network | Midnight Preprod |
 | Preprod contract | `9afd75682f9ebf51efabb743bd58d95352f8380ae4fb71aa06dfd4644de88fdc` |
 | Verified proof transaction | `00d38f121f7f6feaad0b52136fb9f0bf49604431549ff9dd1b9eac6282a565675c` (block `1662053`) |
-| Demo video | `DEMO_VIDEO_TBD` |
+| Demo video | [42-second interface, circuit, and privacy walkthrough](https://rudrabhaskar9439.github.io/private-progress-counter/veilmark-demo.mp4) |
 | Repository | [RudraBhaskar9439/private-progress-counter](https://github.com/RudraBhaskar9439/private-progress-counter) |
 
 Earlier Level 1 evidence is preserved on Preview at `117a7b2e88a579659122c0bba15decffe98285db9cd0811620184fdb3d79f20a`.

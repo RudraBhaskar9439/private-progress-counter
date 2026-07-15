@@ -96,7 +96,8 @@ export async function createVeilMarkClient(connectedAPI: ConnectedAPI, contractA
   }
 
   const shielded = await connectedAPI.getShieldedAddresses();
-  const zkConfigProvider = new FetchZkConfigProvider<CircuitKeys>(window.location.origin, fetch.bind(window));
+  const assetBaseURL = new URL(import.meta.env.BASE_URL, window.location.origin).toString();
+  const zkConfigProvider = new FetchZkConfigProvider<CircuitKeys>(assetBaseURL, fetch.bind(window));
   const privateStateProvider = inMemoryPrivateStateProvider<typeof privateProgressStateId, VeilMarkPrivateState>();
   privateStateProvider.setContractAddress(contractAddress as ContractAddress);
 

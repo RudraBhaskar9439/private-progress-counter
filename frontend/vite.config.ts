@@ -8,6 +8,7 @@ import { sites } from './build/sites-vite-plugin';
 export default defineConfig(async () => {
   const { cloudflare } = await import('@cloudflare/vite-plugin');
   return {
+    base: process.env.GITHUB_ACTIONS ? '/private-progress-counter/' : '/',
     build: {
       target: 'esnext',
       sourcemap: true,
