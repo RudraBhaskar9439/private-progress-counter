@@ -24,6 +24,12 @@ function friendlyProofError(error: unknown): string {
     if (current instanceof Error) {
       messages.push(current.message);
       current = current.cause;
+    } else if (typeof current === 'object') {
+      const value = current as Record<string, unknown>;
+      const details = [value.code, value.reason, value.message]
+        .filter((part): part is string => typeof part === 'string' && part.length > 0);
+      messages.push(details.join(': ') || JSON.stringify(value));
+      current = value.cause ?? value.error;
     } else {
       messages.push(String(current));
       break;

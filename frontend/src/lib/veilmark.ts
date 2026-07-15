@@ -49,6 +49,17 @@ function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+function connectorErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'object' && error !== null) {
+    const value = error as Record<string, unknown>;
+    return [value.code, value.reason, value.message]
+      .filter((part): part is string => typeof part === 'string' && part.length > 0)
+      .join(': ') || JSON.stringify(value, (_key, part) => typeof part === 'bigint' ? part.toString() : part);
+  }
+  return String(error);
+}
+
 function getPrivateState(): VeilMarkPrivateState {
   const storageKey = 'veilmark-private-progress-key-v1';
   const stored = localStorage.getItem(storageKey);
@@ -130,7 +141,11 @@ export async function createVeilMarkClient(connectedAPI: ConnectedAPI, contractA
     },
     midnightProvider: {
       submitTx: async (transaction: FinalizedTransaction) => {
-        await connectedAPI.submitTransaction(toHex(transaction.serialize()));
+        try {
+          await connectedAPI.submitTransaction(toHex(transaction.serialize()));
+        } catch (error) {
+          throw new Error(`Lace submission failed: ${connectorErrorMessage(error)}`);
+        }
         return transaction.identifiers()[0];
       },
     },
