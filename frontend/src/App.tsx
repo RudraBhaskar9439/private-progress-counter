@@ -35,7 +35,11 @@ export default function App() {
 
       <div className="app-grid">
         <WalletConnect wallet={wallet} />
-        <CircuitCall connectedAPI={wallet.connectedAPI} address={wallet.address} />
+        <CircuitCall
+          connectedAPI={wallet.connectedAPI}
+          reconnectAPI={wallet.reconnect}
+          address={wallet.address}
+        />
       </div>
 
       <section className="privacy-strip" aria-labelledby="privacy-title">

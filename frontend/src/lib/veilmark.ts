@@ -60,6 +60,12 @@ function connectorErrorMessage(error: unknown): string {
   return String(error);
 }
 
+function isClosedWalletChannel(error: unknown): boolean {
+  return /RemoteApiShutdown|channel.+shutdown|object can no longer be used/i.test(
+    connectorErrorMessage(error),
+  );
+}
+
 function getPrivateState(): VeilMarkPrivateState {
   const storageKey = 'veilmark-private-progress-key-v1';
   const stored = localStorage.getItem(storageKey);
@@ -92,7 +98,11 @@ function normalizePublicState(state: VeilMarkContract.Ledger): PublicProgressSta
   };
 }
 
-export async function createVeilMarkClient(connectedAPI: ConnectedAPI, contractAddress = CONTRACT_ADDRESS) {
+export async function createVeilMarkClient(
+  connectedAPI: ConnectedAPI,
+  reconnectAPI: () => Promise<ConnectedAPI>,
+  contractAddress = CONTRACT_ADDRESS,
+) {
   if (!/^[0-9a-f]{64}$/i.test(contractAddress)) {
     throw new Error('The configured Preprod contract address is invalid.');
   }
@@ -121,6 +131,14 @@ export async function createVeilMarkClient(connectedAPI: ConnectedAPI, contractA
   privateStateProvider.setContractAddress(contractAddress as ContractAddress);
 
   const publicDataProvider = indexerPublicDataProvider(configuration.indexerUri, configuration.indexerWsUri);
+  let activeAPI = connectedAPI;
+
+  const recoverWalletChannel = async (error: unknown): Promise<ConnectedAPI> => {
+    if (!isClosedWalletChannel(error)) throw error;
+    activeAPI = await reconnectAPI();
+    return activeAPI;
+  };
+
   const providers = {
     privateStateProvider,
     zkConfigProvider,
@@ -130,7 +148,14 @@ export async function createVeilMarkClient(connectedAPI: ConnectedAPI, contractA
       getCoinPublicKey: () => shielded.shieldedCoinPublicKey,
       getEncryptionPublicKey: () => shielded.shieldedEncryptionPublicKey,
       balanceTx: async (transaction: UnboundTransaction): Promise<FinalizedTransaction> => {
-        const balanced = await connectedAPI.balanceUnsealedTransaction(toHex(transaction.serialize()));
+        const serialized = toHex(transaction.serialize());
+        let balanced;
+        try {
+          balanced = await activeAPI.balanceUnsealedTransaction(serialized);
+        } catch (error) {
+          const recoveredAPI = await recoverWalletChannel(error);
+          balanced = await recoveredAPI.balanceUnsealedTransaction(serialized);
+        }
         return Transaction.deserialize<SignatureEnabled, Proof, Binding>(
           'signature',
           'proof',
@@ -141,10 +166,16 @@ export async function createVeilMarkClient(connectedAPI: ConnectedAPI, contractA
     },
     midnightProvider: {
       submitTx: async (transaction: FinalizedTransaction) => {
+        const serialized = toHex(transaction.serialize());
         try {
-          await connectedAPI.submitTransaction(toHex(transaction.serialize()));
+          await activeAPI.submitTransaction(serialized);
         } catch (error) {
-          throw new Error(`Lace submission failed: ${connectorErrorMessage(error)}`);
+          try {
+            const recoveredAPI = await recoverWalletChannel(error);
+            await recoveredAPI.submitTransaction(serialized);
+          } catch (submissionError) {
+            throw new Error(`Lace submission failed: ${connectorErrorMessage(submissionError)}`);
+          }
         }
         return transaction.identifiers()[0];
       },

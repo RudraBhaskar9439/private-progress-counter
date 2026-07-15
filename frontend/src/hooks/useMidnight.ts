@@ -99,6 +99,19 @@ export function useMidnight() {
     }
   }, [selectedWallet]);
 
+  // Lace's connector may close the Remote API channel after an approval
+  // window finishes. Reconnecting through InitialAPI creates a fresh channel
+  // without changing the visible wallet state or rebuilding the DApp client.
+  const reconnect = useCallback(async (): Promise<ConnectedAPI> => {
+    if (!selectedWallet) throw new Error('Lace is not available.');
+    const api = await selectedWallet.api.connect(NETWORK_ID);
+    const configuration = await api.getConfiguration();
+    if (configuration.networkId !== NETWORK_ID) {
+      throw new Error(`Network mismatch: expected ${NETWORK_ID}.`);
+    }
+    return api;
+  }, [selectedWallet]);
+
   const disconnect = useCallback(() => {
     setConnectedAPI(null);
     setAddress(null);
@@ -116,6 +129,7 @@ export function useMidnight() {
     address,
     error,
     connect,
+    reconnect,
     disconnect,
   };
 }

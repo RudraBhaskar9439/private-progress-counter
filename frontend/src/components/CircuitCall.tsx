@@ -50,9 +50,11 @@ function friendlyProofError(error: unknown): string {
 
 export function CircuitCall({
   connectedAPI,
+  reconnectAPI,
   address,
 }: {
   readonly connectedAPI: ConnectedAPI | null;
+  readonly reconnectAPI: () => Promise<ConnectedAPI>;
   readonly address: string | null;
 }) {
   const clientRef = useRef<Client | null>(null);
@@ -67,7 +69,7 @@ export function CircuitCall({
     if (clientRef.current) return clientRef.current;
     if (!clientPromiseRef.current) {
       setActionState('loading');
-      clientPromiseRef.current = createVeilMarkClient(connectedAPI);
+      clientPromiseRef.current = createVeilMarkClient(connectedAPI, reconnectAPI);
     }
     try {
       const client = await clientPromiseRef.current;
@@ -79,7 +81,7 @@ export function CircuitCall({
       clientPromiseRef.current = null;
       throw initializationError;
     }
-  }, [connectedAPI]);
+  }, [connectedAPI, reconnectAPI]);
 
   useEffect(() => {
     clientRef.current = null;
