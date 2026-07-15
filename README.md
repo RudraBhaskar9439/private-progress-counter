@@ -1,163 +1,215 @@
-# Private Progress Counter
+# VeilMark
 
-> A Midnight Compact contract that records verifiable private check-ins without publishing the user's raw secret.
+> Build consistency. Keep the reason private.
 
-## Contract Address
+VeilMark is a privacy-first daily progress ritual built on Midnight. A user connects Lace, creates one zero-knowledge check-in for the current UTC day, and publishes only a period-scoped commitment and the aggregate proof count. The private device key—and the personal context behind the check-in—never appears in the UI or on-chain.
 
-| Network | Address |
+## Live Deployment
+
+| Item | Value |
 | --- | --- |
-| Preview | `117a7b2e88a579659122c0bba15decffe98285db9cd0811620184fdb3d79f20a` |
-| Preprod | Not deployed |
-| Local devnet | `c839eb72b9dc83553c1abfa43f19eff3eb010d6be0e5c11886afd1e8773a2213` |
+| Live app | `LIVE_DEMO_TBD` |
+| Network | Midnight Preprod |
+| Preprod contract | `9afd75682f9ebf51efabb743bd58d95352f8380ae4fb71aa06dfd4644de88fdc` |
+| Verified proof transaction | `00d38f121f7f6feaad0b52136fb9f0bf49604431549ff9dd1b9eac6282a565675c` (block `1662053`) |
+| Demo video | `DEMO_VIDEO_TBD` |
+| Repository | [RudraBhaskar9439/private-progress-counter](https://github.com/RudraBhaskar9439/private-progress-counter) |
 
-## What This Does
+Earlier Level 1 evidence is preserved on Preview at `117a7b2e88a579659122c0bba15decffe98285db9cd0811620184fdb3d79f20a`.
 
-Private Progress Counter lets a user record a check-in using a secret that remains inside a zero-knowledge circuit. Each successful call increments the public `verifiedCheckIns` counter and publishes only a domain-separated one-way commitment. Observers can verify that check-ins occurred without learning the secret used to create them.
+## Why VeilMark Is Useful
 
-## Privacy Model
+Most habit trackers make the activity itself part of the product data. VeilMark separates accountability from disclosure: a learner, founder, caregiver, athlete, or wellness user can prove they showed up without publishing the sensitive reason behind that progress.
 
-- **PUBLIC — visible to anyone on-chain:** the aggregate `verifiedCheckIns` count and `latestCommitment`, a domain-separated hash derived from the witness.
-- **PRIVATE — never written on-chain:** the 32-byte value returned by the `localSecret()` witness and the local private state that stores it.
-- **PROVED WITHOUT REVEALING:** a successful circuit execution proves that the caller supplied the private input used to derive the published commitment. The contract's deliberate `disclose()` applies only to that commitment, not to the witness itself.
+The current prototype proves a narrow, understandable claim:
+
+> A device holding a private key created no more than one valid progress commitment for this UTC day.
+
+This is intentionally more useful than a generic counter. The same primitive can become a private streak layer for cohorts, grants, learning programs, recovery communities, or personal goals.
+
+## Privacy Claim
+
+### Stays private
+
+- A random 32-byte device key generated with `crypto.getRandomValues()`.
+- The user's real-world activity, reason, goal, and notes.
+- The witness value supplied to the Compact circuit.
+
+### Becomes public
+
+- The aggregate `verifiedCheckIns` count.
+- The latest UTC period tag, such as `2026-07-15`.
+- A domain-separated one-way commitment derived from the device key and period.
+
+### What the proof guarantees
+
+`recordPrivateProgress(period)` obtains the key through the `localSecret()` witness, hashes `["veilmark:daily:v1", secret, period]`, rejects a commitment already present in `usedCommitments`, then updates the public ledger. The `disclose()` operation applies only to the derived commitment—not to the secret.
+
+Because the period is included in the commitment, the same device produces a different public value on a different day. Because the contract stores used commitments, that device cannot submit the same day's proof twice.
+
+## User Flow
+
+1. Open the live app with Lace installed and configured for Midnight Preprod.
+2. Select a compatible wallet if more than one connector is available.
+3. Connect and approve access in Lace.
+4. Click **Prove today's progress**.
+5. VeilMark creates the witness locally, generates the zero-knowledge proof, and asks Lace to approve the transaction.
+6. The app confirms **“Proved without revealing your input.”** and displays only the transaction identifier and public state.
+7. Disconnecting clears the app session while leaving the device key in local browser storage for tomorrow's proof.
+
+The interface includes detection, missing-wallet guidance, connector-version checks, network mismatch handling, connection cancellation handling, proof loading states, fee errors, duplicate-day feedback, and connect/disconnect controls.
+
+## Architecture
+
+```text
+Lace wallet
+    │ connect("preprod") / balance / submit
+    ▼
+React + Vite frontend
+    │ local witness + period tag
+    ▼
+Midnight.js providers
+    ├── browser ZK assets
+    ├── Lace-configured proof server
+    └── Preprod indexer
+    ▼
+Compact contract
+    ├── recordPrivateProgress(period)
+    ├── usedCommitments
+    ├── latestCommitment
+    ├── latestPeriod
+    └── verifiedCheckIns
+```
+
+The frontend uses the current DApp Connector API, validates Connector API 4.x, checks the returned network configuration, and bridges Lace's serialized transactions into Midnight.js. ZK proving keys and ZKIR assets are served with the application.
 
 ## Tech Stack
 
-- Midnight Network Preview and local devnet
-- Compact language 0.23.0 and compiler 0.31.1
-- Midnight.js 4.0.4
-- Node.js 22
-- TypeScript and Vitest
-- Docker and the local Midnight proof server
+- Compact compiler 0.31.1 and Compact language 0.23.0
+- Midnight.js 4.1.1 in the browser
+- DApp Connector API 4.0.1
+- React 19, TypeScript, and Vite 8
+- Lace wallet on Midnight Preprod
+- Vitest simulator tests
+- Cloudflare Worker-compatible production bundle
 
-## Prerequisites
+## Run Locally
 
-- macOS or Linux
+### Prerequisites
+
 - Node.js 22+
 - npm
 - Docker Desktop with Docker Compose v2
-- Compact toolchain with compiler 0.31.1 or newer
+- Compact compiler 0.31.1+
+- Lace wallet for browser interaction
 
-Install Compact using the [official Midnight toolchain instructions](https://docs.midnight.network/getting-started/installation):
-
-```bash
-curl --proto '=https' --tlsv1.2 -LsSf \
-  https://github.com/midnightntwrk/compact/releases/latest/download/compact-installer.sh | sh
-compact update
-```
-
-## Setup
+Install the Compact toolchain using the [official Midnight instructions](https://docs.midnight.network/getting-started/installation), then clone and install:
 
 ```bash
 git clone https://github.com/RudraBhaskar9439/private-progress-counter.git
 cd private-progress-counter
-nvm use
-npm install
-```
-
-Compile the contract and generate the `managed/` circuits and keys:
-
-```bash
+npm ci
+npm ci --prefix frontend
 npm run compile
 ```
 
-Start a local Midnight devnet, compile, and deploy:
+Copy the environment template and set the deployed contract address:
 
 ```bash
-npm run setup
+cp frontend/.env.example frontend/.env.preprod
 ```
 
-After setup, interact with the deployed contract:
+Start the frontend:
 
 ```bash
-npm run cli
+npm run web:dev
 ```
 
-For Preview, start the deployment and fund the printed wallet address using the faucet when prompted:
+The app is available at `http://localhost:4173`.
 
-```bash
-npm run setup -- --network preview
-```
+## Contract Development
 
-## Run Tests
-
-Run the four simulator tests:
+Run the simulator suite and both TypeScript builds:
 
 ```bash
 npm test
+npm run build
+npm run web:build
 ```
 
-Type-check the application:
+Deploy with the local proof server:
 
 ```bash
-npm run build
+npm run setup -- --network preprod
 ```
 
-After a deployment, verify indexed on-chain state:
+After deployment, verify that the indexed contract state can be reloaded:
 
 ```bash
 npm run test:e2e
 ```
 
-The test suite covers circuit initialization, public state transitions, deterministic commitments, different commitments for different secrets, and the absence of the raw private witness from public ledger state.
+For a local devnet, run `npm run setup`; for the earlier Preview environment, run `npm run setup -- --network preview`.
+
+## Test Coverage
+
+The six simulator tests verify:
+
+- initialized public ledger state;
+- a successful private progress transition;
+- deterministic commitment derivation for the same secret and period;
+- duplicate-day rejection;
+- distinct commitments on different days;
+- absence of the raw witness from public ledger state.
+
+CI runs the contract tests, root type-check, and complete browser production build on every push and pull request.
 
 ## Project Structure
 
 ```text
 private-progress-counter/
-├── contracts/
-│   └── private-progress-counter.compact
-├── managed/
-│   └── private-progress-counter/
-│       ├── contract/
-│       ├── keys/
-│       └── zkir/
-├── src/
-│   ├── cli.ts
-│   ├── deploy.ts
-│   ├── network.ts
-│   ├── setup.ts
-│   ├── wallet.ts
-│   └── witnesses.ts
-├── tests/
-│   ├── private-progress-counter-simulator.ts
-│   └── private-progress-counter.test.ts
-├── .github/workflows/ci.yml
-├── README.md
-└── package.json
+├── contracts/private-progress-counter.compact
+├── frontend/
+│   ├── src/components/WalletConnect.tsx
+│   ├── src/components/CircuitCall.tsx
+│   ├── src/hooks/useMidnight.ts
+│   ├── src/lib/veilmark.ts
+│   ├── public/keys + zkir
+│   └── worker/index.ts
+├── managed/private-progress-counter/
+├── scripts/e2e-check.ts
+├── src/deploy.ts
+├── src/wallet.ts
+├── src/witnesses.ts
+└── tests/private-progress-counter.test.ts
 ```
 
-## Initial Idea
+## Meaningful Commit History
 
-Private Progress Counter can become a privacy-first habit and milestone layer for communities, learning programs, or wellness applications. A participant could prove that they completed a daily private action while publishing only an aggregate streak and a cryptographic commitment; later versions could add time windows, unlinkable per-day commitments, and selective disclosure to trusted reviewers without putting sensitive activity details on-chain.
+The repository has eight focused milestones before final deployment evidence:
 
-## Screenshots
+1. `chore: scaffold Midnight contract project`
+2. `feat: add private progress Compact contract`
+3. `test: cover circuit state and witness privacy`
+4. `feat: wire private contract into deployment workflow`
+5. `docs: add submission guide and deployment evidence`
+6. `ci: update GitHub Actions runtime`
+7. `feat: add period-scoped private progress proofs`
+8. `feat: launch VeilMark privacy-first web app`
 
-### Successful Compact compile
+## Security Notes and Limitations
+
+- `.midnight-state.json`, `.midnight-wallet-state/`, and local `.env*` files are excluded from Git.
+- The browser device key is intentionally persistent but is not backed up. Clearing site storage creates a new identity.
+- VeilMark proves control of a private device key and uniqueness for a period; it cannot independently verify the real-world activity.
+- The current aggregate is global to this contract. A production cohort version should add scoped groups, recovery, selective disclosure, and a clearly defined anti-Sybil policy.
+- Preprod assets and faucet tokens have no real monetary value.
+
+## Level 1 Evidence
 
 ![Successful Compact compile](docs/screenshots/compact-compile.png)
 
-### Preview deployment and contract address
-
-![Preview contract deployment](docs/screenshots/preview-deployment.png)
-
-## Commands
-
-| Command | Purpose |
-| --- | --- |
-| `npm run compile` | Compile Compact and regenerate circuits/keys in `managed/`. |
-| `npm test` | Run the contract simulator test suite. |
-| `npm run build` | Type-check source, scripts, and tests. |
-| `npm run setup` | Start local services, compile, and deploy locally. |
-| `npm run setup -- --network preview` | Compile and deploy to Preview. |
-| `npm run cli` | Record a private progress proof or inspect public state. |
-| `npm run test:e2e` | Reconnect to the active deployment and verify indexed state. |
-
-## Security Notes
-
-- `.midnight-state.json` and `.midnight-wallet-state/` contain wallet/runtime state and are excluded from Git.
-- The local devnet uses the well-known development genesis seed and must never be used for real funds.
-- Reusing the same witness produces the same commitment; a production version should rotate or derive a scoped secret for unlinkability.
-- The proof server runs locally so witness data is not sent to a third-party proving service.
+![Preview deployment](docs/screenshots/preview-deployment.png)
 
 ## License
 
