@@ -5,23 +5,33 @@ export type Witnesses<PS> = {
 }
 
 export type ImpureCircuits<PS> = {
-  recordPrivateProgress(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
+  recordPrivateProgress(context: __compactRuntime.CircuitContext<PS>,
+                        period_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
 }
 
 export type ProvableCircuits<PS> = {
-  recordPrivateProgress(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
+  recordPrivateProgress(context: __compactRuntime.CircuitContext<PS>,
+                        period_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
 }
 
 export type PureCircuits = {
 }
 
 export type Circuits<PS> = {
-  recordPrivateProgress(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
+  recordPrivateProgress(context: __compactRuntime.CircuitContext<PS>,
+                        period_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
 }
 
 export type Ledger = {
   readonly verifiedCheckIns: bigint;
   readonly latestCommitment: Uint8Array;
+  readonly latestPeriod: Uint8Array;
+  usedCommitments: {
+    isEmpty(): boolean;
+    size(): bigint;
+    member(elem_0: Uint8Array): boolean;
+    [Symbol.iterator](): Iterator<Uint8Array>
+  };
 }
 
 export type ContractReferenceLocations = any;

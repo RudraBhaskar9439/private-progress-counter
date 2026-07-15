@@ -42,8 +42,8 @@ export class PrivateProgressSimulator {
     return this.circuitContext.currentPrivateState;
   }
 
-  recordPrivateProgress(): Ledger {
-    this.circuitContext = this.contract.impureCircuits.recordPrivateProgress(this.circuitContext).context;
+  recordPrivateProgress(period: Uint8Array): Ledger {
+    this.circuitContext = this.contract.impureCircuits.recordPrivateProgress(this.circuitContext, period).context;
     return this.getLedger();
   }
 }

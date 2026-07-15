@@ -8,6 +8,13 @@
       "pure": false,
       "proof": true,
       "arguments": [
+        {
+          "name": "period",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        }
       ],
       "result-type": {
         "type-name": "Tuple",
@@ -41,6 +48,26 @@
       "index": 1,
       "exported": true,
       "storage": "Cell",
+      "type": {
+        "type-name": "Bytes",
+        "length": 32
+      }
+    },
+    {
+      "name": "latestPeriod",
+      "index": 2,
+      "exported": true,
+      "storage": "Cell",
+      "type": {
+        "type-name": "Bytes",
+        "length": 32
+      }
+    },
+    {
+      "name": "usedCommitments",
+      "index": 3,
+      "exported": true,
+      "storage": "Set",
       "type": {
         "type-name": "Bytes",
         "length": 32

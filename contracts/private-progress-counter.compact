@@ -5,31 +5,39 @@ import CompactStandardLibrary;
 /*
  * Privacy model
  * -------------
- * PUBLIC: verifiedCheckIns and latestCommitment are ledger state and can be
- * read by anyone. latestCommitment is a domain-separated one-way hash.
+ * PUBLIC: verifiedCheckIns, latestCommitment, latestPeriod, and the set of
+ * used commitments are ledger state and can be read by anyone.
  *
  * PRIVATE: localSecret() is supplied by the user's private state and is used
  * only inside the zero-knowledge circuit. The raw secret is never returned or
  * written to the ledger.
  *
  * PROOF: a successful call proves that the caller supplied a private secret
- * from which the published commitment was computed. disclose() is deliberate:
- * it permits only the derived commitment—not the witness itself—to become
- * public.
+ * from which the period-scoped commitment was computed. The same secret cannot
+ * submit twice for the same period. disclose() is deliberate: it permits only
+ * the derived commitment and public period—not the witness—to become public.
  */
 
 export ledger verifiedCheckIns: Counter;
 export ledger latestCommitment: Bytes<32>;
+export ledger latestPeriod: Bytes<32>;
+export ledger usedCommitments: Set<Bytes<32>>;
 
 witness localSecret(): Bytes<32>;
 
-export circuit recordPrivateProgress(): [] {
+export circuit recordPrivateProgress(period: Bytes<32>): [] {
   const secret = localSecret();
-  const commitment = persistentHash<Vector<2, Bytes<32>>>([
-    pad(32, "private-progress:v1"),
-    secret
-  ]);
+  const commitment = disclose(
+    persistentHash<Vector<3, Bytes<32>>>([
+      pad(32, "veilmark:daily:v1"),
+      secret,
+      period
+    ])
+  );
 
-  latestCommitment = disclose(commitment);
+  assert(!usedCommitments.member(commitment), "Progress already proved for this period");
+  usedCommitments.insert(commitment);
+  latestCommitment = commitment;
+  latestPeriod = disclose(period);
   verifiedCheckIns.increment(1);
 }

@@ -22,6 +22,8 @@ import * as PrivateProgress from '../managed/private-progress-counter/contract/i
 import {
   createPrivateProgressState,
   createPrivateProgressWitnesses,
+  createPeriodTag,
+  decodePeriodTag,
   privateProgressStateId,
 } from './witnesses';
 
@@ -177,7 +179,7 @@ async function main() {
         case '1': {
           console.log('\n  Submitting transaction (this may take 30-60 seconds)...');
           try {
-            const tx = await deployed.callTx.recordPrivateProgress();
+            const tx = await deployed.callTx.recordPrivateProgress(createPeriodTag());
             console.log('\n  ✅ Private progress proof recorded');
             console.log(`  Transaction ID: ${tx.public.txId}`);
             console.log(`  Block height: ${tx.public.blockHeight}\n`);
@@ -194,6 +196,7 @@ async function main() {
             if (contractState) {
               const ledgerState = PrivateProgress.ledger(contractState.data);
               console.log(`\n  Verified check-ins: ${ledgerState.verifiedCheckIns}`);
+              console.log(`  Latest UTC period:  ${decodePeriodTag(ledgerState.latestPeriod) || 'None yet'}`);
               console.log(`  Latest commitment:  ${Buffer.from(ledgerState.latestCommitment).toString('hex')}\n`);
             } else {
               console.log('\n  No contract state found\n');
