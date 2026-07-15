@@ -95,6 +95,14 @@ export async function createVeilMarkClient(connectedAPI: ConnectedAPI, contractA
     throw new Error('Lace has no proof-server URL configured.');
   }
 
+  // Lace can retain a stale prover URL even when the DApp is running locally.
+  // For the local recording flow, use the verified loopback proof server that
+  // ships with this project instead of inheriting an unrelated wallet setting.
+  const isLocalApp = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const proofServerUri = isLocalApp
+    ? 'http://localhost:6300'
+    : configuration.proverServerUri;
+
   const shielded = await connectedAPI.getShieldedAddresses();
   const assetBaseURL = new URL(import.meta.env.BASE_URL, window.location.origin).toString();
   const zkConfigProvider = new FetchZkConfigProvider<CircuitKeys>(assetBaseURL, fetch.bind(window));
@@ -105,7 +113,7 @@ export async function createVeilMarkClient(connectedAPI: ConnectedAPI, contractA
   const providers = {
     privateStateProvider,
     zkConfigProvider,
-    proofProvider: httpClientProofProvider(configuration.proverServerUri, zkConfigProvider),
+    proofProvider: httpClientProofProvider(proofServerUri, zkConfigProvider),
     publicDataProvider,
     walletProvider: {
       getCoinPublicKey: () => shielded.shieldedCoinPublicKey,
