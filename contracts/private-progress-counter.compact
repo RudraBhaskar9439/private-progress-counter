@@ -1,0 +1,35 @@
+pragma language_version >= 0.23;
+
+import CompactStandardLibrary;
+
+/*
+ * Privacy model
+ * -------------
+ * PUBLIC: verifiedCheckIns and latestCommitment are ledger state and can be
+ * read by anyone. latestCommitment is a domain-separated one-way hash.
+ *
+ * PRIVATE: localSecret() is supplied by the user's private state and is used
+ * only inside the zero-knowledge circuit. The raw secret is never returned or
+ * written to the ledger.
+ *
+ * PROOF: a successful call proves that the caller supplied a private secret
+ * from which the published commitment was computed. disclose() is deliberate:
+ * it permits only the derived commitment—not the witness itself—to become
+ * public.
+ */
+
+export ledger verifiedCheckIns: Counter;
+export ledger latestCommitment: Bytes<32>;
+
+witness localSecret(): Bytes<32>;
+
+export circuit recordPrivateProgress(): [] {
+  const secret = localSecret();
+  const commitment = persistentHash<Vector<2, Bytes<32>>>([
+    pad(32, "private-progress:v1"),
+    secret
+  ]);
+
+  latestCommitment = disclose(commitment);
+  verifiedCheckIns.increment(1);
+}

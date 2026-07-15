@@ -15,8 +15,8 @@ build/
 .env.test.local
 .env.production.local
 
-# Contract artifacts
-contracts/managed/
+# Contract artifacts are committed for the Rise In submission so reviewers can
+# inspect the generated circuits and proving/verifying keys in managed/.
 
 # Deployment info
 deployment.json

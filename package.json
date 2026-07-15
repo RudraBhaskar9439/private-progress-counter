@@ -2,12 +2,12 @@
   "name": "private-progress-counter",
   "version": "1.0.0",
   "type": "module",
-  "description": "A Midnight Network application created with create-mn-app",
+  "description": "A privacy-preserving progress counter built on Midnight",
   "author": "",
   "license": "MIT",
   "scripts": {
-    "compile": "compact compile contracts/hello-world.compact contracts/managed/hello-world",
-    "build": "npx tsc --noEmit || true",
+    "compile": "compact compile contracts/private-progress-counter.compact managed/private-progress-counter",
+    "build": "npx tsc --noEmit",
     "setup": "npx tsx src/setup.ts",
     "deploy": "npx tsx src/deploy.ts",
     "cli": "npx tsx src/cli.ts",
@@ -15,8 +15,8 @@
     "network": "npx tsx src/network.ts",
     "proof-server:start": "docker compose up -d",
     "proof-server:stop": "docker compose down",
-    "clean": "rm -rf contracts/managed .midnight-state.json .midnight-wallet-state",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "clean": "rm -rf managed .midnight-state.json .midnight-wallet-state",
+    "test": "vitest run",
     "test:e2e": "tsx scripts/e2e-check.ts"
   },
   "dependencies": {
@@ -43,6 +43,7 @@
     "@types/node": "^22.0.0",
     "@types/ws": "^8.18.1",
     "tsx": "^4.21.0",
+    "vitest": "^4.1.0",
     "typescript": "^6.0.3"
   },
   "engines": {
