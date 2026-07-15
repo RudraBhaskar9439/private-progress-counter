@@ -64,7 +64,21 @@ services:
     image: midnightntwrk/proof-server:8.0.3
     container_name: private-progress-counter-proof-server
     command: ["midnight-proof-server -v"]
-    ports:
-      - "6300:6300"
+    expose:
+      - "6300"
     environment:
       RUST_BACKTRACE: "full"
+
+  proof-server-proxy:
+    # Chromium applies Private Network Access checks when the public demo calls
+    # a proof server on localhost. The proof-server image supports CORS but does
+    # not emit Access-Control-Allow-Private-Network, so this loopback-only proxy
+    # adds the required response header without exposing the prover publicly.
+    image: nginx:1.27.5-alpine
+    container_name: private-progress-counter-proof-server-proxy
+    ports:
+      - "127.0.0.1:6300:6300"
+    volumes:
+      - ./infra/proof-server-proxy.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - proof-server

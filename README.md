@@ -140,8 +140,13 @@ npm run web:build
 Deploy with the local proof server:
 
 ```bash
+npm run proof-server:start
 npm run setup -- --network preprod
 ```
+
+The proof-server command also starts a loopback-only proxy on port `6300` that
+adds Chromium's required Private Network Access response header. Keep Docker
+Desktop running while using the public demo with Lace.
 
 After deployment, verify that the indexed contract state can be reloaded:
 
