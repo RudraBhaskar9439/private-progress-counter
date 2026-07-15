@@ -5,7 +5,7 @@ import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { WebSocket } from 'ws';
 import { Buffer } from 'buffer';
 
@@ -18,6 +18,12 @@ import { NodeZkConfigProvider } from '@midnight-ntwrk/midnight-js-node-zk-config
 import { resolveNetwork, getOrCreateSeed, getDeployment } from './network';
 import { createWallet, persistWalletState, unshieldedToken, type WalletContext } from './wallet';
 import { CompiledContract } from '@midnight-ntwrk/compact-js';
+import * as PrivateProgress from '../managed/private-progress-counter/contract/index.js';
+import {
+  createPrivateProgressState,
+  createPrivateProgressWitnesses,
+  privateProgressStateId,
+} from './witnesses';
 
 // Enable WebSocket for GraphQL subscriptions
 // @ts-expect-error Required for wallet sync
@@ -27,7 +33,7 @@ const { network, config: networkConfig } = resolveNetwork();
 const SEED = getOrCreateSeed(network);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const zkConfigPath = path.resolve(__dirname, '..', 'contracts', 'managed', 'hello-world');
+const zkConfigPath = path.resolve(__dirname, '..', 'managed', 'private-progress-counter');
 
 // Load compiled contract
 const contractPath = path.join(zkConfigPath, 'contract', 'index.js');
@@ -38,10 +44,8 @@ if (!fs.existsSync(contractPath)) {
   process.exit(1);
 }
 
-const HelloWorld = await import(pathToFileURL(contractPath).href);
-
-const compiledContract = CompiledContract.make('hello-world', HelloWorld.Contract).pipe(
-  CompiledContract.withVacantWitnesses,
+const compiledContract = CompiledContract.make('private-progress-counter', PrivateProgress.Contract).pipe(
+  CompiledContract.withWitnesses(createPrivateProgressWitnesses()),
   CompiledContract.withCompiledFileAssets(zkConfigPath),
 );
 
@@ -77,7 +81,7 @@ async function createProviders(walletCtx: WalletContext) {
 
   return {
     privateStateProvider: levelPrivateStateProvider({
-      privateStateStoreName: 'hello-world-state',
+      privateStateStoreName: privateProgressStateId,
       accountId,
       privateStoragePasswordProvider: () => privateStatePassword,
     }),
@@ -152,6 +156,8 @@ async function main() {
     const deployed: any = await findDeployedContract(providers, {
       compiledContract: compiledContract as any,
       contractAddress: deployment.address,
+      privateStateId: privateProgressStateId,
+      initialPrivateState: createPrivateProgressState(Uint8Array.from(Buffer.from(SEED, 'hex'))),
     });
 
     console.log('  ✅ Connected!\n');
@@ -160,8 +166,8 @@ async function main() {
     let running = true;
     while (running) {
       console.log('─── Menu ───────────────────────────────────────────────────────');
-      console.log('  1. Store a message');
-      console.log('  2. Read current message');
+      console.log('  1. Record private progress');
+      console.log('  2. Read public progress state');
       console.log('  3. Check wallet balance');
       console.log('  4. Exit\n');
 
@@ -169,11 +175,10 @@ async function main() {
 
       switch (choice.trim()) {
         case '1': {
-          const message = await rl.question('  Enter your message: ');
           console.log('\n  Submitting transaction (this may take 30-60 seconds)...');
           try {
-            const tx = await deployed.callTx.storeMessage(message);
-            console.log(`\n  ✅ Message stored: "${message}"`);
+            const tx = await deployed.callTx.recordPrivateProgress();
+            console.log('\n  ✅ Private progress proof recorded');
             console.log(`  Transaction ID: ${tx.public.txId}`);
             console.log(`  Block height: ${tx.public.blockHeight}\n`);
           } catch (error) {
@@ -183,15 +188,15 @@ async function main() {
         }
 
         case '2': {
-          console.log('\n  Reading message from blockchain...');
+          console.log('\n  Reading progress state from blockchain...');
           try {
             const contractState = await providers.publicDataProvider.queryContractState(deployment.address);
             if (contractState) {
-              const ledgerState = HelloWorld.ledger(contractState.data);
-              const message = Buffer.from(ledgerState.message).toString();
-              console.log(`\n  📋 Current message: "${message}"\n`);
+              const ledgerState = PrivateProgress.ledger(contractState.data);
+              console.log(`\n  Verified check-ins: ${ledgerState.verifiedCheckIns}`);
+              console.log(`  Latest commitment:  ${Buffer.from(ledgerState.latestCommitment).toString('hex')}\n`);
             } else {
-              console.log('\n  📋 No message found (contract state empty)\n');
+              console.log('\n  No contract state found\n');
             }
           } catch (error) {
             console.error('\n  ❌ Failed:', error instanceof Error ? error.message : error);

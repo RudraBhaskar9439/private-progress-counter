@@ -8,7 +8,8 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { resolveNetwork, getOrCreateSeed, recordDeployment } from './network';
 import { createWallet, persistWalletState, unshieldedToken, type WalletContext } from './wallet';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
+import { Buffer } from 'node:buffer';
 import { WebSocket } from 'ws';
 import * as Rx from 'rxjs';
 
@@ -19,6 +20,12 @@ import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-p
 import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
 import { NodeZkConfigProvider } from '@midnight-ntwrk/midnight-js-node-zk-config-provider';
 import { CompiledContract } from '@midnight-ntwrk/compact-js';
+import * as PrivateProgress from '../managed/private-progress-counter/contract/index.js';
+import {
+  createPrivateProgressState,
+  createPrivateProgressWitnesses,
+  privateProgressStateId,
+} from './witnesses';
 
 // @ts-expect-error Required for wallet sync
 globalThis.WebSocket = WebSocket;
@@ -62,7 +69,7 @@ async function waitForProofServer(maxAttempts = 60, delayMs = 2000): Promise<boo
 // ─── Compiled contract loading ─────────────────────────────────────────────────
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const zkConfigPath = path.resolve(__dirname, '..', 'contracts', 'managed', 'hello-world');
+const zkConfigPath = path.resolve(__dirname, '..', 'managed', 'private-progress-counter');
 const contractPath = path.join(zkConfigPath, 'contract', 'index.js');
 
 if (!fs.existsSync(contractPath)) {
@@ -70,10 +77,8 @@ if (!fs.existsSync(contractPath)) {
   process.exit(1);
 }
 
-const HelloWorld = await import(pathToFileURL(contractPath).href);
-
-const compiledContract = CompiledContract.make('hello-world', HelloWorld.Contract).pipe(
-  CompiledContract.withVacantWitnesses,
+const compiledContract = CompiledContract.make('private-progress-counter', PrivateProgress.Contract).pipe(
+  CompiledContract.withWitnesses(createPrivateProgressWitnesses()),
   CompiledContract.withCompiledFileAssets(zkConfigPath),
 );
 
@@ -108,7 +113,7 @@ async function createProviders(walletCtx: WalletContext) {
 
   return {
     privateStateProvider: levelPrivateStateProvider({
-      privateStateStoreName: 'hello-world-state',
+      privateStateStoreName: privateProgressStateId,
       accountId,
       privateStoragePasswordProvider: () => privateStatePassword,
     }),
@@ -281,6 +286,8 @@ async function main() {
     try {
       deployed = await deployContract(providers, {
         compiledContract: compiledContract as any,
+        privateStateId: privateProgressStateId,
+        initialPrivateState: createPrivateProgressState(Uint8Array.from(Buffer.from(SEED, 'hex'))),
         args: [],
       });
       break;
