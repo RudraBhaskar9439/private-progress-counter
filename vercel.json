@@ -1,0 +1,6 @@
+{
+  "installCommand": "npm install && npm --prefix frontend install",
+  "buildCommand": "npm run web:build",
+  "outputDirectory": "frontend/dist",
+  "framework": null
+}

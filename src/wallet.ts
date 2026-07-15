@@ -100,6 +100,9 @@ export async function createWallet(opts: CreateWalletOptions): Promise<WalletCon
 
   const walletConfig = {
     networkId,
+    // Public networks can have more than a million historical events. Larger
+    // batches keep the SDK's sync queue bounded and avoid excessive GC churn.
+    batchSize: 1_000,
     indexerClientConnection: {
       indexerHttpUrl: opts.networkConfig.indexer,
       indexerWsUrl: opts.networkConfig.indexerWS,
