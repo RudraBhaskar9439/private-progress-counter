@@ -59,6 +59,17 @@ export default defineConfig(async () => {
       ],
     },
     resolve: {
+      // The generated contract lives one directory above this package. Without
+      // deduplication, Vite can bundle both the root and frontend copies of the
+      // Compact runtime, making class-backed ledger values fail instanceof
+      // checks at the contract boundary (for example, ChargedState).
+      dedupe: [
+        '@midnight-ntwrk/compact-js',
+        '@midnight-ntwrk/compact-runtime',
+        '@midnight-ntwrk/ledger-v8',
+        '@midnight-ntwrk/onchain-runtime-v3',
+        '@midnight-ntwrk/platform-js',
+      ],
       alias: {
         assert: 'assert/',
         'isomorphic-ws': fileURLToPath(new URL('./src/shims/isomorphic-ws.ts', import.meta.url)),

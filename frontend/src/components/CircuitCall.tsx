@@ -16,9 +16,25 @@ function compact(value: string | null, start = 12, end = 8): string {
 }
 
 function friendlyProofError(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error);
+  const messages: string[] = [];
+  let current: unknown = error;
+  const visited = new Set<unknown>();
+  while (current && !visited.has(current) && messages.length < 8) {
+    visited.add(current);
+    if (current instanceof Error) {
+      messages.push(current.message);
+      current = current.cause;
+    } else {
+      messages.push(String(current));
+      break;
+    }
+  }
+  const message = messages.join(' — ');
   if (/assert|already|usedCommitments|duplicate/i.test(message)) {
     return 'Today is already sealed with this private key. Come back tomorrow for a fresh proof.';
+  }
+  if (/ChargedState|runtime is out of sync/i.test(message)) {
+    return 'The app runtime is out of sync. Hard-refresh this page and try once more.';
   }
   if (/reject|declin|cancel/i.test(message)) return 'The transaction was cancelled in Lace.';
   if (/balance|fund|dust|fee/i.test(message)) return 'Your Preprod wallet needs enough NIGHT/DUST to pay the transaction fee.';
