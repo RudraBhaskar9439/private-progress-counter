@@ -4,13 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "check:midnight-versions": "node scripts/check-midnight-versions.mjs",
     "sync:assets": "mkdir -p public/keys public/zkir && cp -R ../managed/private-progress-counter/keys/. public/keys/ && cp -R ../managed/private-progress-counter/zkir/. public/zkir/",
     "dev": "npm run sync:assets && vite",
     "build": "npm run sync:assets && tsc --noEmit && vite build --mode preprod",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@midnight-ntwrk/compact-js": "2.5.0",
+    "@midnight-ntwrk/compact-js": "2.5.1",
     "@midnight-ntwrk/dapp-connector-api": "4.0.1",
     "@midnight-ntwrk/midnight-js-contracts": "4.1.1",
     "@midnight-ntwrk/midnight-js-fetch-zk-config-provider": "4.1.1",
