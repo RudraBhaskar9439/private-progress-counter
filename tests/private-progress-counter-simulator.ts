@@ -11,6 +11,7 @@ import {
   type Ledger,
 } from '../managed/private-progress-counter/contract/index.js';
 import {
+  createResponseTag,
   createPrivateProgressState,
   createPrivateProgressWitnesses,
   type PrivateProgressPrivateState,
@@ -42,8 +43,9 @@ export class PrivateProgressSimulator {
     return this.circuitContext.currentPrivateState;
   }
 
-  recordPrivateProgress(period: Uint8Array): Ledger {
-    this.circuitContext = this.contract.impureCircuits.recordPrivateProgress(this.circuitContext, period).context;
+  submitAnonymousPulse(campaign: Uint8Array, response: number): Ledger {
+    this.circuitContext.currentPrivateState.response = createResponseTag(response);
+    this.circuitContext = this.contract.impureCircuits.submitAnonymousPulse(this.circuitContext, campaign).context;
     return this.getLedger();
   }
 }

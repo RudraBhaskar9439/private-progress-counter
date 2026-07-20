@@ -3,41 +3,51 @@ pragma language_version >= 0.23;
 import CompactStandardLibrary;
 
 /*
- * Privacy model
- * -------------
- * PUBLIC: verifiedCheckIns, latestCommitment, latestPeriod, and the set of
+ * VeilMark Pulse privacy model
+ * ----------------------------
+ * PUBLIC: verifiedResponses, latestCommitment, latestCampaign, and the set of
  * used commitments are ledger state and can be read by anyone.
  *
- * PRIVATE: localSecret() is supplied by the user's private state and is used
- * only inside the zero-knowledge circuit. The raw secret is never returned or
- * written to the ledger.
+ * PRIVATE: localSecret() and privateResponse() are browser-held witnesses used
+ * only inside the zero-knowledge circuit. Neither raw value enters the ledger.
  *
- * PROOF: a successful call proves that the caller supplied a private secret
- * from which the period-scoped commitment was computed. The same secret cannot
- * submit twice for the same period. disclose() is deliberate: it permits only
- * the derived commitment and public period—not the witness—to become public.
+ * PROOF: a successful call proves the private response is one of 1–5 and binds
+ * it to a campaign-scoped commitment. Reusing an identical proof is rejected.
  */
 
-export ledger verifiedCheckIns: Counter;
+export ledger verifiedResponses: Counter;
 export ledger latestCommitment: Bytes<32>;
-export ledger latestPeriod: Bytes<32>;
+export ledger latestCampaign: Bytes<32>;
 export ledger usedCommitments: Set<Bytes<32>>;
 
 witness localSecret(): Bytes<32>;
+witness privateResponse(): Bytes<32>;
 
-export circuit recordPrivateProgress(period: Bytes<32>): [] {
+export circuit submitAnonymousPulse(campaign: Bytes<32>): [] {
   const secret = localSecret();
+  const response = privateResponse();
+
+  assert(
+    response == pad(32, "1") ||
+    response == pad(32, "2") ||
+    response == pad(32, "3") ||
+    response == pad(32, "4") ||
+    response == pad(32, "5"),
+    "Pulse response must be between 1 and 5"
+  );
+
   const commitment = disclose(
-    persistentHash<Vector<3, Bytes<32>>>([
-      pad(32, "veilmark:daily:v1"),
+    persistentHash<Vector<4, Bytes<32>>>([
+      pad(32, "veilmark:pulse:v1"),
       secret,
-      period
+      campaign,
+      response
     ])
   );
 
-  assert(!usedCommitments.member(commitment), "Progress already proved for this period");
+  assert(!usedCommitments.member(commitment), "Pulse already submitted for this campaign");
   usedCommitments.insert(commitment);
   latestCommitment = commitment;
-  latestPeriod = disclose(period);
-  verifiedCheckIns.increment(1);
+  latestCampaign = disclose(campaign);
+  verifiedResponses.increment(1);
 }

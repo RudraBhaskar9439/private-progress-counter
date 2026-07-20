@@ -2,30 +2,31 @@ import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';
 
 export type Witnesses<PS> = {
   localSecret(context: __compactRuntime.WitnessContext<Ledger, PS>): [PS, Uint8Array];
+  privateResponse(context: __compactRuntime.WitnessContext<Ledger, PS>): [PS, Uint8Array];
 }
 
 export type ImpureCircuits<PS> = {
-  recordPrivateProgress(context: __compactRuntime.CircuitContext<PS>,
-                        period_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
+  submitAnonymousPulse(context: __compactRuntime.CircuitContext<PS>,
+                       campaign_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
 }
 
 export type ProvableCircuits<PS> = {
-  recordPrivateProgress(context: __compactRuntime.CircuitContext<PS>,
-                        period_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
+  submitAnonymousPulse(context: __compactRuntime.CircuitContext<PS>,
+                       campaign_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
 }
 
 export type PureCircuits = {
 }
 
 export type Circuits<PS> = {
-  recordPrivateProgress(context: __compactRuntime.CircuitContext<PS>,
-                        period_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
+  submitAnonymousPulse(context: __compactRuntime.CircuitContext<PS>,
+                       campaign_0: Uint8Array): __compactRuntime.CircuitResults<PS, []>;
 }
 
 export type Ledger = {
-  readonly verifiedCheckIns: bigint;
+  readonly verifiedResponses: bigint;
   readonly latestCommitment: Uint8Array;
-  readonly latestPeriod: Uint8Array;
+  readonly latestCampaign: Uint8Array;
   usedCommitments: {
     isEmpty(): boolean;
     size(): bigint;

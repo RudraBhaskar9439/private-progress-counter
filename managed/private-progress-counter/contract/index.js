@@ -7,7 +7,7 @@ const _descriptor_1 = __compactRuntime.CompactTypeBoolean;
 
 const _descriptor_2 = new __compactRuntime.CompactTypeUnsignedInteger(65535n, 2);
 
-const _descriptor_3 = new __compactRuntime.CompactTypeVector(3, _descriptor_0);
+const _descriptor_3 = new __compactRuntime.CompactTypeVector(4, _descriptor_0);
 
 const _descriptor_4 = new __compactRuntime.CompactTypeUnsignedInteger(18446744073709551615n, 8);
 
@@ -62,50 +62,53 @@ export class Contract {
     if (typeof(witnesses_0.localSecret) !== 'function') {
       throw new __compactRuntime.CompactError('first (witnesses) argument to Contract constructor does not contain a function-valued field named localSecret');
     }
+    if (typeof(witnesses_0.privateResponse) !== 'function') {
+      throw new __compactRuntime.CompactError('first (witnesses) argument to Contract constructor does not contain a function-valued field named privateResponse');
+    }
     this.witnesses = witnesses_0;
     this.circuits = {
-      recordPrivateProgress: (...args_1) => {
+      submitAnonymousPulse: (...args_1) => {
         if (args_1.length !== 2) {
-          throw new __compactRuntime.CompactError(`recordPrivateProgress: expected 2 arguments (as invoked from Typescript), received ${args_1.length}`);
+          throw new __compactRuntime.CompactError(`submitAnonymousPulse: expected 2 arguments (as invoked from Typescript), received ${args_1.length}`);
         }
         const contextOrig_0 = args_1[0];
-        const period_0 = args_1[1];
+        const campaign_0 = args_1[1];
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
-          __compactRuntime.typeError('recordPrivateProgress',
+          __compactRuntime.typeError('submitAnonymousPulse',
                                      'argument 1 (as invoked from Typescript)',
-                                     'private-progress-counter.compact line 28 char 1',
+                                     'private-progress-counter.compact line 26 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
-        if (!(period_0.buffer instanceof ArrayBuffer && period_0.BYTES_PER_ELEMENT === 1 && period_0.length === 32)) {
-          __compactRuntime.typeError('recordPrivateProgress',
+        if (!(campaign_0.buffer instanceof ArrayBuffer && campaign_0.BYTES_PER_ELEMENT === 1 && campaign_0.length === 32)) {
+          __compactRuntime.typeError('submitAnonymousPulse',
                                      'argument 1 (argument 2 as invoked from Typescript)',
-                                     'private-progress-counter.compact line 28 char 1',
+                                     'private-progress-counter.compact line 26 char 1',
                                      'Bytes<32>',
-                                     period_0)
+                                     campaign_0)
         }
         const context = { ...contextOrig_0, gasCost: __compactRuntime.emptyRunningCost() };
         const partialProofData = {
           input: {
-            value: _descriptor_0.toValue(period_0),
+            value: _descriptor_0.toValue(campaign_0),
             alignment: _descriptor_0.alignment()
           },
           output: undefined,
           publicTranscript: [],
           privateTranscriptOutputs: []
         };
-        const result_0 = this._recordPrivateProgress_0(context,
-                                                       partialProofData,
-                                                       period_0);
+        const result_0 = this._submitAnonymousPulse_0(context,
+                                                      partialProofData,
+                                                      campaign_0);
         partialProofData.output = { value: [], alignment: [] };
         return { result: result_0, context: context, proofData: partialProofData, gasCost: context.gasCost };
       }
     };
     this.impureCircuits = {
-      recordPrivateProgress: this.circuits.recordPrivateProgress
+      submitAnonymousPulse: this.circuits.submitAnonymousPulse
     };
     this.provableCircuits = {
-      recordPrivateProgress: this.circuits.recordPrivateProgress
+      submitAnonymousPulse: this.circuits.submitAnonymousPulse
     };
   }
   initialState(...args_0) {
@@ -132,7 +135,7 @@ export class Contract {
     stateValue_0 = stateValue_0.arrayPush(__compactRuntime.StateValue.newNull());
     stateValue_0 = stateValue_0.arrayPush(__compactRuntime.StateValue.newNull());
     state_0.data = new __compactRuntime.ChargedState(stateValue_0);
-    state_0.setOperation('recordPrivateProgress', new __compactRuntime.ContractOperation());
+    state_0.setOperation('submitAnonymousPulse', new __compactRuntime.ContractOperation());
     const context = __compactRuntime.createCircuitContext(__compactRuntime.dummyContractAddress(), constructorContext_0.initialZswapLocalState.coinPublicKey, state_0.data, constructorContext_0.initialPrivateState);
     const partialProofData = {
       input: { value: [], alignment: [] },
@@ -199,7 +202,7 @@ export class Contract {
     if (!(result_0.buffer instanceof ArrayBuffer && result_0.BYTES_PER_ELEMENT === 1 && result_0.length === 32)) {
       __compactRuntime.typeError('localSecret',
                                  'return value',
-                                 'private-progress-counter.compact line 26 char 1',
+                                 'private-progress-counter.compact line 23 char 1',
                                  'Bytes<32>',
                                  result_0)
     }
@@ -209,11 +212,45 @@ export class Contract {
     });
     return result_0;
   }
-  _recordPrivateProgress_0(context, partialProofData, period_0) {
+  _privateResponse_0(context, partialProofData) {
+    const witnessContext_0 = __compactRuntime.createWitnessContext(ledger(context.currentQueryContext.state), context.currentPrivateState, context.currentQueryContext.address);
+    const [nextPrivateState_0, result_0] = this.witnesses.privateResponse(witnessContext_0);
+    context.currentPrivateState = nextPrivateState_0;
+    if (!(result_0.buffer instanceof ArrayBuffer && result_0.BYTES_PER_ELEMENT === 1 && result_0.length === 32)) {
+      __compactRuntime.typeError('privateResponse',
+                                 'return value',
+                                 'private-progress-counter.compact line 24 char 1',
+                                 'Bytes<32>',
+                                 result_0)
+    }
+    partialProofData.privateTranscriptOutputs.push({
+      value: _descriptor_0.toValue(result_0),
+      alignment: _descriptor_0.alignment()
+    });
+    return result_0;
+  }
+  _submitAnonymousPulse_0(context, partialProofData, campaign_0) {
     const secret_0 = this._localSecret_0(context, partialProofData);
-    const commitment_0 = this._persistentHash_0([new Uint8Array([118, 101, 105, 108, 109, 97, 114, 107, 58, 100, 97, 105, 108, 121, 58, 118, 49, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+    const response_0 = this._privateResponse_0(context, partialProofData);
+    __compactRuntime.assert(this._equal_0(response_0,
+                                          new Uint8Array([49, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
+                            ||
+                            this._equal_1(response_0,
+                                          new Uint8Array([50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
+                            ||
+                            this._equal_2(response_0,
+                                          new Uint8Array([51, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
+                            ||
+                            this._equal_3(response_0,
+                                          new Uint8Array([52, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))
+                            ||
+                            this._equal_4(response_0,
+                                          new Uint8Array([53, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])),
+                            'Pulse response must be between 1 and 5');
+    const commitment_0 = this._persistentHash_0([new Uint8Array([118, 101, 105, 108, 109, 97, 114, 107, 58, 112, 117, 108, 115, 101, 58, 118, 49, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
                                                  secret_0,
-                                                 period_0]);
+                                                 campaign_0,
+                                                 response_0]);
     __compactRuntime.assert(!_descriptor_1.fromValue(__compactRuntime.queryLedgerState(context,
                                                                                        partialProofData,
                                                                                        [
@@ -230,7 +267,7 @@ export class Contract {
                                                                                         'member',
                                                                                         { popeq: { cached: true,
                                                                                                    result: undefined } }]).value),
-                            'Progress already proved for this period');
+                            'Pulse already submitted for this campaign');
     __compactRuntime.queryLedgerState(context,
                                       partialProofData,
                                       [
@@ -264,7 +301,7 @@ export class Contract {
                                                  value: __compactRuntime.StateValue.newCell({ value: _descriptor_8.toValue(2n),
                                                                                               alignment: _descriptor_8.alignment() }).encode() } },
                                        { push: { storage: true,
-                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(period_0),
+                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(campaign_0),
                                                                                               alignment: _descriptor_0.alignment() }).encode() } },
                                        { ins: { cached: false, n: 1 } }]);
     const tmp_0 = 1n;
@@ -285,6 +322,26 @@ export class Contract {
                                        { ins: { cached: true, n: 1 } }]);
     return [];
   }
+  _equal_0(x0, y0) {
+    if (!x0.every((x, i) => y0[i] === x)) { return false; }
+    return true;
+  }
+  _equal_1(x0, y0) {
+    if (!x0.every((x, i) => y0[i] === x)) { return false; }
+    return true;
+  }
+  _equal_2(x0, y0) {
+    if (!x0.every((x, i) => y0[i] === x)) { return false; }
+    return true;
+  }
+  _equal_3(x0, y0) {
+    if (!x0.every((x, i) => y0[i] === x)) { return false; }
+    return true;
+  }
+  _equal_4(x0, y0) {
+    if (!x0.every((x, i) => y0[i] === x)) { return false; }
+    return true;
+  }
 }
 export function ledger(stateOrChargedState) {
   const state = stateOrChargedState instanceof __compactRuntime.StateValue ? stateOrChargedState : stateOrChargedState.state;
@@ -300,7 +357,7 @@ export function ledger(stateOrChargedState) {
     privateTranscriptOutputs: []
   };
   return {
-    get verifiedCheckIns() {
+    get verifiedResponses() {
       return _descriptor_4.fromValue(__compactRuntime.queryLedgerState(context,
                                                                        partialProofData,
                                                                        [
@@ -328,7 +385,7 @@ export function ledger(stateOrChargedState) {
                                                                         { popeq: { cached: false,
                                                                                    result: undefined } }]).value);
     },
-    get latestPeriod() {
+    get latestCampaign() {
       return _descriptor_0.fromValue(__compactRuntime.queryLedgerState(context,
                                                                        partialProofData,
                                                                        [
@@ -391,7 +448,7 @@ export function ledger(stateOrChargedState) {
         if (!(elem_0.buffer instanceof ArrayBuffer && elem_0.BYTES_PER_ELEMENT === 1 && elem_0.length === 32)) {
           __compactRuntime.typeError('member',
                                      'argument 1',
-                                     'private-progress-counter.compact line 24 char 1',
+                                     'private-progress-counter.compact line 21 char 1',
                                      'Bytes<32>',
                                      elem_0)
         }
@@ -425,7 +482,9 @@ export function ledger(stateOrChargedState) {
 const _emptyContext = {
   currentQueryContext: new __compactRuntime.QueryContext(new __compactRuntime.ContractState().data, __compactRuntime.dummyContractAddress())
 };
-const _dummyContract = new Contract({ localSecret: (...args) => undefined });
+const _dummyContract = new Contract({
+  localSecret: (...args) => undefined, privateResponse: (...args) => undefined
+});
 export const pureCircuits = {};
 export const contractReferenceLocations =
   { tag: 'publicLedgerArray', indices: { } };

@@ -123,7 +123,7 @@ async function main() {
   console.log(`✅ e2e-check passed`);
   console.log(`   contractAddress: ${deployment.address}`);
   console.log(`   network:         ${network}`);
-  console.log(`   verifiedCheckIns: ${ledger.verifiedCheckIns}`);
+  console.log(`   verifiedResponses: ${ledger.verifiedResponses}`);
 
   await walletCtx.wallet.stop();
   process.exit(0);

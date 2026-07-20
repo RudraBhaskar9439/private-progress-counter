@@ -4,12 +4,12 @@
   "runtime-version": "0.16.0",
   "circuits": [
     {
-      "name": "recordPrivateProgress",
+      "name": "submitAnonymousPulse",
       "pure": false,
       "proof": true,
       "arguments": [
         {
-          "name": "period",
+          "name": "campaign",
           "type": {
             "type-name": "Bytes",
             "length": 32
@@ -32,13 +32,22 @@
         "type-name": "Bytes",
         "length": 32
       }
+    },
+    {
+      "name": "privateResponse",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Bytes",
+        "length": 32
+      }
     }
   ],
   "contracts": [
   ],
   "ledger": [
     {
-      "name": "verifiedCheckIns",
+      "name": "verifiedResponses",
       "index": 0,
       "exported": true,
       "storage": "Counter"
@@ -54,7 +63,7 @@
       }
     },
     {
-      "name": "latestPeriod",
+      "name": "latestCampaign",
       "index": 2,
       "exported": true,
       "storage": "Cell",

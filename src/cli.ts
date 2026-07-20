@@ -22,8 +22,9 @@ import * as PrivateProgress from '../managed/private-progress-counter/contract/i
 import {
   createPrivateProgressState,
   createPrivateProgressWitnesses,
-  createPeriodTag,
-  decodePeriodTag,
+  createCampaignTag,
+  createResponseTag,
+  decodeCampaignTag,
   privateProgressStateId,
 } from './witnesses';
 
@@ -168,8 +169,8 @@ async function main() {
     let running = true;
     while (running) {
       console.log('─── Menu ───────────────────────────────────────────────────────');
-      console.log('  1. Record private progress');
-      console.log('  2. Read public progress state');
+      console.log('  1. Submit anonymous pulse');
+      console.log('  2. Read public pulse state');
       console.log('  3. Check wallet balance');
       console.log('  4. Exit\n');
 
@@ -177,10 +178,15 @@ async function main() {
 
       switch (choice.trim()) {
         case '1': {
+          const pulse = Number.parseInt(await rl.question('  Private response (1-5): '), 10);
           console.log('\n  Submitting transaction (this may take 30-60 seconds)...');
           try {
-            const tx = await deployed.callTx.recordPrivateProgress(createPeriodTag());
-            console.log('\n  ✅ Private progress proof recorded');
+            const privateState = await providers.privateStateProvider.get(privateProgressStateId);
+            if (!privateState) throw new Error('Private pulse state is unavailable.');
+            privateState.response = createResponseTag(pulse);
+            await providers.privateStateProvider.set(privateProgressStateId, privateState);
+            const tx = await deployed.callTx.submitAnonymousPulse(createCampaignTag());
+            console.log('\n  ✅ Anonymous pulse proof recorded');
             console.log(`  Transaction ID: ${tx.public.txId}`);
             console.log(`  Block height: ${tx.public.blockHeight}\n`);
           } catch (error) {
@@ -190,13 +196,13 @@ async function main() {
         }
 
         case '2': {
-          console.log('\n  Reading progress state from blockchain...');
+          console.log('\n  Reading pulse state from blockchain...');
           try {
             const contractState = await providers.publicDataProvider.queryContractState(deployment.address);
             if (contractState) {
               const ledgerState = PrivateProgress.ledger(contractState.data);
-              console.log(`\n  Verified check-ins: ${ledgerState.verifiedCheckIns}`);
-              console.log(`  Latest UTC period:  ${decodePeriodTag(ledgerState.latestPeriod) || 'None yet'}`);
+              console.log(`\n  Verified responses: ${ledgerState.verifiedResponses}`);
+              console.log(`  Latest campaign:    ${decodeCampaignTag(ledgerState.latestCampaign) || 'None yet'}`);
               console.log(`  Latest commitment:  ${Buffer.from(ledgerState.latestCommitment).toString('hex')}\n`);
             } else {
               console.log('\n  No contract state found\n');
