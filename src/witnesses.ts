@@ -5,7 +5,7 @@ export interface PrivateProgressPrivateState {
   response: Uint8Array;
 }
 
-export const privateProgressStateId = 'private-progress-state' as const;
+export const privateProgressStateId = 'veilmark-pulse-private-state-v1' as const;
 
 export function createPrivateProgressState(secret: Uint8Array, response = 3): PrivateProgressPrivateState {
   if (secret.length !== 32) {

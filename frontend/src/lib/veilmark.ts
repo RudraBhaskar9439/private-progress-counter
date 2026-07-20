@@ -15,7 +15,7 @@ import { inMemoryPrivateStateProvider } from '../in-memory-private-state-provide
 
 export const NETWORK_ID = (import.meta.env.VITE_NETWORK_ID || 'preprod') as NetworkId;
 export const CONTRACT_ADDRESS = import.meta.env.VITE_DEFAULT_CONTRACT || '';
-export const privateProgressStateId = 'private-progress-state' as const;
+export const privateProgressStateId = 'veilmark-pulse-private-state-v1' as const;
 
 type CircuitKeys = 'submitAnonymousPulse';
 
@@ -69,7 +69,7 @@ function isClosedWalletChannel(error: unknown): boolean {
 }
 
 function getPrivateState(): VeilMarkPrivateState {
-  const storageKey = 'veilmark-private-progress-key-v1';
+  const storageKey = 'veilmark-pulse-device-key-v1';
   const stored = localStorage.getItem(storageKey);
   if (stored) {
     return {
