@@ -1,109 +1,126 @@
-# VeilMark
+# VeilMark Pulse
 
-> Build consistency. Keep the reason private.
+> Speak honestly. Stay unexposed.
 
-VeilMark is a privacy-first daily progress ritual built on Midnight. A user connects Lace, creates one zero-knowledge check-in for the current UTC day, and publishes only a period-scoped commitment and the aggregate proof count. The private device key—and the personal context behind the check-in—never appears in the UI or on-chain.
+[![CI](https://github.com/RudraBhaskar9439/private-progress-counter/actions/workflows/ci.yml/badge.svg)](https://github.com/RudraBhaskar9439/private-progress-counter/actions/workflows/ci.yml)
 
-## Live Deployment
+VeilMark Pulse is an anonymous feedback survey built on Midnight. A contributor privately selects a response from 1–5. The Compact circuit proves the response is valid and records participation without publishing the selected answer or the browser-held device key.
+
+This project follows the Moonshot **Anonymous Feedback / Survey** track.
+
+## Submission links
 
 | Item | Value |
 | --- | --- |
-| Live app | [rudrabhaskar9439.github.io/private-progress-counter](https://rudrabhaskar9439.github.io/private-progress-counter/) |
+| Live dApp | [rudrabhaskar9439.github.io/private-progress-counter](https://rudrabhaskar9439.github.io/private-progress-counter/) |
+| Source | [github.com/RudraBhaskar9439/private-progress-counter](https://github.com/RudraBhaskar9439/private-progress-counter) |
 | Network | Midnight Preprod |
-| Preprod contract | `9afd75682f9ebf51efabb743bd58d95352f8380ae4fb71aa06dfd4644de88fdc` |
-| Verified Lace/browser proof | `00f8ff3d4d4ea957922e6c298c5711ae11f29acd5dbad679d9fc642e173dd96e09` (block `1668605`, on-chain count `2`) |
-| Demo video | [42-second interface, circuit, and privacy walkthrough](https://rudrabhaskar9439.github.io/private-progress-counter/veilmark-demo.mp4) |
-| Repository | [RudraBhaskar9439/private-progress-counter](https://github.com/RudraBhaskar9439/private-progress-counter) |
+| Level 3 contract | `88fa2cafe00bf991e5d8dfec2c54679236ae5027f07e724883dee5caf58b6ef0` |
+| Verified Level 3 pulse | `00a5145a1b870574b62898fc099334c8da37386c299b6cae8897162d611ec79454` (block `1744793`) |
+| Test evidence | [8 passing privacy tests](docs/screenshots/level-3-tests.png) |
+| Demo video | [1-minute product walkthrough](https://rudrabhaskar9439.github.io/private-progress-counter/veilmark-pulse-demo.mp4) |
 
-Earlier Level 1 evidence is preserved on Preview at `117a7b2e88a579659122c0bba15decffe98285db9cd0811620184fdb3d79f20a`.
+Level 2 is preserved in Git history. Its deployed contract was `9afd75682f9ebf51efabb743bd58d95352f8380ae4fb71aa06dfd4644de88fdc`, with successful Lace proof transaction `00f8ff3d4d4ea957922e6c298c5711ae11f29acd5dbad679d9fc642e173dd96e09`.
 
-## Why VeilMark Is Useful
+## The problem
 
-Most habit trackers make the activity itself part of the product data. VeilMark separates accountability from disclosure: a learner, founder, caregiver, athlete, or wellness user can prove they showed up without publishing the sensitive reason behind that progress.
+Workplace pulse surveys often ask people to reveal sensitive sentiment to the same organization that evaluates them. Even when a form claims to be anonymous, contributors must trust the database, administrators, and analytics stack.
 
-The current prototype proves a narrow, understandable claim:
+VeilMark changes the trust model. It lets a team verify that valid survey participation happened while keeping each 1–5 response in the contributor's private witness. The first release deliberately publishes participation rather than an answer histogram, because a public total updated one transaction at a time could allow observers to infer individual answers by comparing ledger states.
 
-> A device holding a private key created no more than one valid progress commitment for this UTC day.
+## Product flow
 
-This is intentionally more useful than a generic counter. The same primitive can become a private streak layer for cohorts, grants, learning programs, recovery communities, or personal goals.
+1. Open the dApp with Lace configured for Midnight Preprod.
+2. Connect the wallet and choose one of five pulse states: **Blocked, Strained, Steady, Strong, or Thriving**.
+3. The selected response becomes a private circuit witness in the browser.
+4. Click **Submit anonymous pulse** and approve the scoped transaction in Lace.
+5. The Compact circuit proves that the private response is one of 1–5, derives a response-bound campaign commitment, and prevents an identical proof from being replayed.
+6. The UI displays the transaction ID, verified participation count, campaign, and commitment. It never displays the selected answer as public state.
 
-## Privacy Claim
+The interface includes wallet discovery, connector-version checks, network mismatch guidance, cancellation handling, duplicate-proof feedback, proof loading states, fee guidance, closed-wallet-channel recovery, and accessible keyboard/touch response controls.
 
-### Stays private
+## Privacy model
 
-- A random 32-byte device key generated with `crypto.getRandomValues()`.
-- The user's real-world activity, reason, goal, and notes.
-- The witness value supplied to the Compact circuit.
+### What an observer can learn
 
-### Becomes public
+- A valid response was submitted to the current monthly campaign.
+- The global number of verified responses.
+- The public campaign tag, for example `pulse-2026-07`.
+- A domain-separated one-way commitment and transaction metadata.
 
-- The aggregate `verifiedCheckIns` count.
-- The latest UTC period tag, such as `2026-07-15`.
-- A domain-separated one-way commitment derived from the device key and period.
+### What an observer cannot learn
+
+- Which 1–5 response was selected.
+- The meaning or personal context behind the answer.
+- The random 32-byte device key.
+- The raw witnesses used to create the proof.
+- A plaintext identity-to-answer mapping from this contract.
 
 ### What the proof guarantees
 
-`recordPrivateProgress(period)` obtains the key through the `localSecret()` witness, hashes `["veilmark:daily:v1", secret, period]`, rejects a commitment already present in `usedCommitments`, then updates the public ledger. The `disclose()` operation applies only to the derived commitment—not to the secret.
+`submitAnonymousPulse(campaign)` receives `localSecret()` and `privateResponse()` as witnesses. It constrains the private response to one of the padded values `1` through `5`, then derives:
 
-Because the period is included in the commitment, the same device produces a different public value on a different day. Because the contract stores used commitments, that device cannot submit the same day's proof twice.
+```text
+persistentHash(["veilmark:pulse:v1", secret, campaign, response])
+```
 
-## User Flow
+Only the derived commitment and campaign are disclosed. The response and secret remain private. The contract rejects an identical commitment already present in `usedCommitments`, then increments `verifiedResponses`.
 
-1. Open the live app with Lace installed and configured for Midnight Preprod.
-2. Select a compatible wallet if more than one connector is available.
-3. Connect and approve access in Lace.
-4. Click **Prove today's progress**.
-5. VeilMark creates the witness locally, generates the zero-knowledge proof, and asks Lace to approve the transaction.
-6. The app confirms **“Proved without revealing your input.”** and displays only the transaction identifier and public state.
-7. Disconnecting clears the app session while leaving the device key in local browser storage for tomorrow's proof.
-
-The interface includes detection, missing-wallet guidance, connector-version checks, network mismatch handling, connection cancellation handling, proof loading states, fee errors, duplicate-day feedback, and connect/disconnect controls.
+The response is included in the commitment, so the proof is bound to the selected value without exposing it. The campaign is also included, so commitments rotate between campaigns and are less linkable across time.
 
 ## Architecture
 
 ```text
 Lace wallet
-    │ connect("preprod") / balance / submit
+    │ authorize / balance / submit
     ▼
-React + Vite frontend
-    │ local witness + period tag
+React + Vite dApp
+    │ device secret + private 1–5 witness
     ▼
 Midnight.js providers
-    ├── browser ZK assets
-    ├── Lace-configured proof server
+    ├── browser proving assets
+    ├── proof server
     └── Preprod indexer
     ▼
 Compact contract
-    ├── recordPrivateProgress(period)
-    ├── usedCommitments
-    ├── latestCommitment
-    ├── latestPeriod
-    └── verifiedCheckIns
+    ├── submitAnonymousPulse(campaign)
+    ├── private response range constraint
+    ├── usedCommitments replay guard
+    ├── latestCampaign + latestCommitment
+    └── verifiedResponses
 ```
 
-The frontend uses the current DApp Connector API, validates Connector API 4.x, checks the returned network configuration, and bridges Lace's serialized transactions into Midnight.js. ZK proving keys and ZKIR assets are served with the application.
+## Tests and CI/CD
 
-## Tech Stack
+The simulator suite currently has eight passing tests:
 
-- Compact compiler 0.31.1 and Compact language 0.23.0
-- Midnight.js 4.1.1 in the browser
-- DApp Connector API 4.0.1
-- React 19, TypeScript, and Vite 8
-- Lace wallet on Midnight Preprod
-- Vitest simulator tests
-- Cloudflare Worker-compatible production bundle
+1. initializes the public response count at zero;
+2. accepts valid private responses from 1–5;
+3. binds commitments to the private response;
+4. produces secret-dependent commitments;
+5. rotates commitments between campaigns;
+6. rejects an identical response proof in the same campaign;
+7. rejects response values outside 1–5; and
+8. verifies the raw secret and response never enter public ledger state.
 
-## Run Locally
+The `CI` workflow runs on every push and pull request. It installs locked dependencies, checks compatible Midnight versions, smoke-tests the compiled circuit, runs all tests, type-checks both applications, builds the production dApp, and verifies that the browser bundle contains exactly one Compact runtime. The Pages workflow publishes the validated client on every push to `main`.
 
-### Prerequisites
+Run the same checks locally:
 
-- Node.js 22+
-- npm
-- Docker Desktop with Docker Compose v2
-- Compact compiler 0.31.1+
-- Lace wallet for browser interaction
+```bash
+npm ci
+npm ci --prefix frontend
+npm run compile
+npm --prefix frontend run smoke:contract
+npm test
+npm run build
+npm run web:build
+npm --prefix frontend run check:bundle-runtime
+```
 
-Install the Compact toolchain using the [official Midnight instructions](https://docs.midnight.network/getting-started/installation), then clone and install:
+## Local development
+
+Prerequisites: Node.js 22+, npm, Docker Desktop, Compact compiler 0.31.1+, and Lace for browser interaction.
 
 ```bash
 git clone https://github.com/RudraBhaskar9439/private-progress-counter.git
@@ -111,65 +128,31 @@ cd private-progress-counter
 npm ci
 npm ci --prefix frontend
 npm run compile
-```
-
-Copy the environment template and set the deployed contract address:
-
-```bash
 cp frontend/.env.example frontend/.env.preprod
-```
-
-Start the frontend:
-
-```bash
+npm run proof-server:start
 npm run web:dev
 ```
 
-The app is available at `http://localhost:4173`.
+Set `VITE_DEFAULT_CONTRACT` to a deployed 64-character Preprod contract address. The local app is available at `http://localhost:4173`.
 
-## Contract Development
-
-Run the simulator suite and both TypeScript builds:
+To deploy a fresh contract:
 
 ```bash
-npm test
-npm run build
-npm run web:build
+npm run deploy -- --network preprod
 ```
 
-Deploy with the local proof server:
+## Tech stack
 
-```bash
-npm run proof-server:start
-npm run setup -- --network preprod
-```
+- Compact compiler 0.31.1 and Compact language 0.23
+- Midnight.js 4.1 in the browser
+- DApp Connector API 4.0
+- React 19, TypeScript 6, Vite 8
+- Lace wallet on Midnight Preprod
+- Vitest simulator suite
+- GitHub Actions CI/CD and GitHub Pages
+- Cloudflare Worker-compatible production build
 
-The proof-server command also starts a loopback-only proxy on port `6300` that
-adds Chromium's required Private Network Access response header. Keep Docker
-Desktop running while using the public demo with Lace.
-
-After deployment, verify that the indexed contract state can be reloaded:
-
-```bash
-npm run test:e2e
-```
-
-For a local devnet, run `npm run setup`; for the earlier Preview environment, run `npm run setup -- --network preview`.
-
-## Test Coverage
-
-The six simulator tests verify:
-
-- initialized public ledger state;
-- a successful private progress transition;
-- deterministic commitment derivation for the same secret and period;
-- duplicate-day rejection;
-- distinct commitments on different days;
-- absence of the raw witness from public ledger state.
-
-CI runs the contract tests, root type-check, and complete browser production build on every push and pull request.
-
-## Project Structure
+## Project structure
 
 ```text
 private-progress-counter/
@@ -179,8 +162,7 @@ private-progress-counter/
 │   ├── src/components/CircuitCall.tsx
 │   ├── src/hooks/useMidnight.ts
 │   ├── src/lib/veilmark.ts
-│   ├── public/keys + zkir
-│   └── worker/index.ts
+│   └── public/keys + zkir
 ├── managed/private-progress-counter/
 ├── scripts/e2e-check.ts
 ├── src/deploy.ts
@@ -189,32 +171,13 @@ private-progress-counter/
 └── tests/private-progress-counter.test.ts
 ```
 
-## Meaningful Commit History
+## Limitations and next steps
 
-The repository has eight focused milestones before final deployment evidence:
-
-1. `chore: scaffold Midnight contract project`
-2. `feat: add private progress Compact contract`
-3. `test: cover circuit state and witness privacy`
-4. `feat: wire private contract into deployment workflow`
-5. `docs: add submission guide and deployment evidence`
-6. `ci: update GitHub Actions runtime`
-7. `feat: add period-scoped private progress proofs`
-8. `feat: launch VeilMark privacy-first web app`
-
-## Security Notes and Limitations
-
-- `.midnight-state.json`, `.midnight-wallet-state/`, and local `.env*` files are excluded from Git.
-- The browser device key is intentionally persistent but is not backed up. Clearing site storage creates a new identity.
-- VeilMark proves control of a private device key and uniqueness for a period; it cannot independently verify the real-world activity.
-- The current aggregate is global to this contract. A production cohort version should add scoped groups, recovery, selective disclosure, and a clearly defined anti-Sybil policy.
-- Preprod assets and faucet tokens have no real monetary value.
-
-## Level 1 Evidence
-
-![Successful Compact compile](docs/screenshots/compact-compile.png)
-
-![Preview deployment](docs/screenshots/preview-deployment.png)
+- This contract proves a well-formed private response and replay resistance; it does not prove employment or personhood. A production organization would add private credential eligibility or a nullifier-based anti-Sybil policy.
+- Clearing browser storage creates a new device key. Production recovery requires a privacy-preserving backup design.
+- The current participation count is global. A next version can add organization and survey scopes.
+- The contract intentionally does not publish per-answer aggregates. A production result release should use thresholded batching so individual answers cannot be inferred from ledger-state differences.
+- Preprod tokens have no monetary value.
 
 ## License
 

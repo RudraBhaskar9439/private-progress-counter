@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VeilMark Pulse — Level 3 test evidence</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 900px; display: grid; place-items: center; color: #eef2e5; background: radial-gradient(circle at 82% 8%, #2c2148, transparent 30rem), #070a12; font: 22px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    main { width: 1360px; padding: 62px 68px; border: 1px solid #303645; border-radius: 30px; background: linear-gradient(145deg, #151a28, #0b0e17); box-shadow: 0 35px 100px #0008; }
+    header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 48px; }
+    .brand { font: 700 28px/1 Inter, system-ui, sans-serif; letter-spacing: -.03em; }
+    .brand span, .pass { color: #d8ff69; }
+    .badge { padding: 10px 17px; border: 1px solid #d8ff6950; border-radius: 999px; color: #d8ff69; font: 700 15px/1 Inter, system-ui, sans-serif; text-transform: uppercase; letter-spacing: .12em; }
+    pre { margin: 0; white-space: pre-wrap; }
+    .muted { color: #8f96a6; }
+    .line { color: #2d3442; }
+    .summary { margin-top: 42px; padding-top: 30px; border-top: 1px solid #303645; }
+    .footer { display: flex; justify-content: space-between; margin-top: 36px; color: #7d8390; font: 15px/1.4 Inter, system-ui, sans-serif; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="brand">VeilMark <span>Pulse</span> · Privacy circuit test suite</div>
+      <div class="badge">All checks passed</div>
+    </header>
+    <pre><span class="muted">$ npm test</span>
+
+ RUN  v4.1.10   private-progress-counter
+
+ <span class="pass">✓</span> VeilMark anonymous pulse contract (8 tests)
+   <span class="pass">✓</span> initializes its public response counter at zero
+   <span class="pass">✓</span> increments public state after valid private 1–5 responses
+   <span class="pass">✓</span> binds commitments to the private response without revealing it
+   <span class="pass">✓</span> derives secret-dependent commitments for the same answer
+   <span class="pass">✓</span> changes the commitment between campaigns to reduce linkability
+   <span class="pass">✓</span> prevents the same private response proof twice in one campaign
+   <span class="pass">✓</span> rejects responses outside the allowed 1–5 range before proving
+   <span class="pass">✓</span> never exposes the raw secret or selected response
+
+<span class="summary"><span class="pass"> Test Files  1 passed (1)</span>
+<span class="pass">      Tests  8 passed (8)</span>
+   Duration  241ms</span></pre>
+    <div class="footer"><span>Compact 0.31.1 · Midnight simulator</span><span>Generated from the successful local test run · 21 Jul 2026</span></div>
+  </main>
+</body>
+</html>
