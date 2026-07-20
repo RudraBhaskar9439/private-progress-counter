@@ -17,15 +17,16 @@ export const NETWORK_ID = (import.meta.env.VITE_NETWORK_ID || 'preprod') as Netw
 export const CONTRACT_ADDRESS = import.meta.env.VITE_DEFAULT_CONTRACT || '';
 export const privateProgressStateId = 'private-progress-state' as const;
 
-type CircuitKeys = 'recordPrivateProgress';
+type CircuitKeys = 'submitAnonymousPulse';
 
 interface VeilMarkPrivateState {
   readonly secret: Uint8Array;
+  response: Uint8Array;
 }
 
 export interface PublicProgressState {
   readonly totalProofs: bigint;
-  readonly latestPeriod: string | null;
+  readonly latestCampaign: string | null;
   readonly latestCommitment: string | null;
 }
 
@@ -35,6 +36,7 @@ export interface ProofResult extends PublicProgressState {
 
 const witnesses: VeilMarkContract.Witnesses<VeilMarkPrivateState> = {
   localSecret: ({ privateState }) => [privateState, new Uint8Array(privateState.secret)],
+  privateResponse: ({ privateState }) => [privateState, new Uint8Array(privateState.response)],
 };
 
 const compiledContract = CompiledContract.make(
@@ -70,21 +72,34 @@ function getPrivateState(): VeilMarkPrivateState {
   const storageKey = 'veilmark-private-progress-key-v1';
   const stored = localStorage.getItem(storageKey);
   if (stored) {
-    return { secret: Uint8Array.from(atob(stored), (character) => character.charCodeAt(0)) };
+    return {
+      secret: Uint8Array.from(atob(stored), (character) => character.charCodeAt(0)),
+      response: createResponseTag(3),
+    };
   }
 
   const secret = crypto.getRandomValues(new Uint8Array(32));
   localStorage.setItem(storageKey, btoa(String.fromCharCode(...secret)));
-  return { secret };
+  return { secret, response: createResponseTag(3) };
 }
 
-export function createPeriodTag(date = new Date()): Uint8Array {
+export function createResponseTag(response: number): Uint8Array {
+  if (!Number.isInteger(response) || response < 1 || response > 5) {
+    throw new Error('Choose a pulse response from 1 to 5.');
+  }
+
   const tag = new Uint8Array(32);
-  tag.set(new TextEncoder().encode(date.toISOString().slice(0, 10)));
+  tag[0] = String(response).charCodeAt(0);
   return tag;
 }
 
-function decodePeriodTag(tag: Uint8Array): string | null {
+export function createCampaignTag(date = new Date()): Uint8Array {
+  const tag = new Uint8Array(32);
+  tag.set(new TextEncoder().encode(`pulse-${date.toISOString().slice(0, 7)}`));
+  return tag;
+}
+
+function decodeCampaignTag(tag: Uint8Array): string | null {
   const decoded = new TextDecoder().decode(tag).replace(/\0+$/g, '');
   return decoded || null;
 }
@@ -92,8 +107,8 @@ function decodePeriodTag(tag: Uint8Array): string | null {
 function normalizePublicState(state: VeilMarkContract.Ledger): PublicProgressState {
   const commitment = bytesToHex(state.latestCommitment);
   return {
-    totalProofs: state.verifiedCheckIns,
-    latestPeriod: decodePeriodTag(state.latestPeriod),
+    totalProofs: state.verifiedResponses,
+    latestCampaign: decodeCampaignTag(state.latestCampaign),
     latestCommitment: /^0+$/.test(commitment) ? null : commitment,
   };
 }
@@ -197,8 +212,12 @@ export async function createVeilMarkClient(
 
   return {
     readPublicState,
-    async proveToday(): Promise<ProofResult> {
-      const transaction = await deployed.callTx.recordPrivateProgress(createPeriodTag());
+    async submitPulse(response: number): Promise<ProofResult> {
+      const privateState = await privateStateProvider.get(privateProgressStateId);
+      if (!privateState) throw new Error('The private pulse state is unavailable. Reconnect your wallet.');
+      privateState.response = createResponseTag(response);
+      await privateStateProvider.set(privateProgressStateId, privateState);
+      const transaction = await deployed.callTx.submitAnonymousPulse(createCampaignTag());
       const publicState = await readPublicState();
       return {
         ...publicState,

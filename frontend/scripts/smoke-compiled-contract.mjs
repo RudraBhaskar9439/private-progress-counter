@@ -4,6 +4,7 @@ import * as VeilMarkContract from '../../managed/private-progress-counter/contra
 
 const witnesses = {
   localSecret: ({ privateState }) => [privateState, new Uint8Array(32)],
+  privateResponse: ({ privateState }) => [privateState, new Uint8Array(32)],
 };
 
 const compiledContract = CompiledContract.make(
@@ -16,8 +17,8 @@ const compiledContract = CompiledContract.make(
 
 const circuitIds = ContractExecutable.make(compiledContract).getProvableCircuitIds();
 
-if (!circuitIds.includes('recordPrivateProgress')) {
-  throw new Error('Compiled contract does not expose recordPrivateProgress.');
+if (!circuitIds.includes('submitAnonymousPulse')) {
+  throw new Error('Compiled contract does not expose submitAnonymousPulse.');
 }
 
-console.log('Compiled contract smoke check passed: recordPrivateProgress is executable.');
+console.log('Compiled contract smoke check passed: submitAnonymousPulse is executable.');

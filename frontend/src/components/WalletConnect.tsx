@@ -20,7 +20,7 @@ export function WalletConnect({ wallet }: { readonly wallet: Wallet }) {
       </div>
 
       <h2 id="wallet-title">Your wallet is the doorway.</h2>
-      <p className="muted">Lace authorizes the transaction. Your private progress key stays in this browser.</p>
+      <p className="muted">Lace authorizes the proof. Your pulse response and private device key stay in this browser.</p>
 
       {connected ? (
         <>

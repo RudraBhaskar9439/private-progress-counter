@@ -7,7 +7,7 @@
     "check:midnight-versions": "node scripts/check-midnight-versions.mjs",
     "check:bundle-runtime": "node scripts/check-bundle-runtime.mjs",
     "smoke:contract": "node scripts/smoke-compiled-contract.mjs",
-    "sync:assets": "mkdir -p public/keys public/zkir && cp -R ../managed/private-progress-counter/keys/. public/keys/ && cp -R ../managed/private-progress-counter/zkir/. public/zkir/",
+    "sync:assets": "rm -rf public/keys public/zkir && mkdir -p public/keys public/zkir && cp -R ../managed/private-progress-counter/keys/. public/keys/ && cp -R ../managed/private-progress-counter/zkir/. public/zkir/",
     "dev": "npm run sync:assets && vite",
     "build": "npm run sync:assets && tsc --noEmit && vite build --mode preprod",
     "preview": "vite preview"
